@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        run: docker build -t email-qa .
+      - name: Smoke test
+        run: |
+          docker run -d --name email-qa -p 3000:3000 email-qa
+          for i in $(seq 1 20); do
+            curl -fs http://localhost:3000/api/health && break
+            sleep 1
+          done
+          curl -fs -X POST http://localhost:3000/api/analyze \
+            -H 'content-type: application/json' \
+            -d '{"html":"<a href=\"#\">x</a>"}' | grep -q '"link-href"'
+          curl -fs http://localhost:3000/ | grep -q '<div id="root">'
+      - name: Container logs
+        if: failure()
+        run: docker logs email-qa

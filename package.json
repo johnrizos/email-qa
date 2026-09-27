@@ -5,11 +5,16 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
-    "typecheck": "npm run typecheck --workspaces"
+    "dev": "npm run build -w @email-qa/core && concurrently -n api,web -c blue,magenta \"npm run dev -w @email-qa/api\" \"npm run dev -w @email-qa/web\"",
+    "build": "npm run build -w @email-qa/core && npm run build -w @email-qa/web && npm run build -w @email-qa/api",
+    "test": "npm run build -w @email-qa/core && npm run test --workspaces",
+    "typecheck": "npm run build -w @email-qa/core && npm run typecheck --workspaces",
+    "start": "node packages/api/dist/main.js"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }
